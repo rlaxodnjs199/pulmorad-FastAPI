@@ -1,8 +1,16 @@
-from fastapi import Depends, APIRouter, HTTPException
+from fastapi import Depends, APIRouter, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_jwt_auth import AuthJWT
+from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from app import config
+from app.db.session import get_db
+from app.core.security import verify_password
+from app.db.util.user import get_user_by_username
+from app.db.schemas import UserFromDB
+from app.db.models import User
+
+from typing import Optional
 
 auth_router = auth = APIRouter()
 
@@ -19,11 +27,26 @@ def get_JWT_config():
     return JWT_Settings()
 
 
-@auth.post('/login')
-def login(form_data: OAuth2PasswordRequestForm = Depends(), Authorize: AuthJWT = Depends()):
-    if form_data.username != "test" or form_data.password != "test":
-        raise HTTPException(status_code=401, detail="Bad username or password")
+def authenticate_user(db_engine, username: str, password: str) -> Optional[UserFromDB]:
+    user = get_user_by_username(db_engine, username)
 
+    if not user:
+        return None
+    if not verify_password(password, user.hashed_password):
+        return None
+    return user
+
+
+@auth.post('/login')
+def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends(), Authorize: AuthJWT = Depends()):
+    user = authenticate_user(db, form_data.username, form_data.password)
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Incorrect username or password',
+            headers={'WWW-Authenticate': 'Bearer'},
+        )
     access_token = Authorize.create_access_token(subject=form_data.username)
     refresh_token = Authorize.create_refresh_token(subject=form_data.username)
     # Set the JWT cookies in the response
@@ -45,7 +68,7 @@ def refresh(Authorize: AuthJWT = Depends()):
 
 @auth.delete('/logout')
 def logout(Authorize: AuthJWT = Depends()):
-    Authorize.jwt_required()
+    # Authorize.jwt_required()
 
     Authorize.unset_jwt_cookies()
     return {"msg": "Successfully logout"}
