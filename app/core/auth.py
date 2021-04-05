@@ -1,16 +1,20 @@
+from typing import Optional
+
 from fastapi import Depends, APIRouter, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_jwt_auth import AuthJWT
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from aioredis import Redis
+
 from app import config
 from app.db.session import get_db
 from app.core.security import verify_password
 from app.db.util.user import get_user_by_username
 from app.db.schemas import UserFromDB
 from app.db.models import User
+from app.db.redis.session import init_redis_pool, insert_key, get_key
 
-from typing import Optional
 
 auth_router = auth = APIRouter()
 
@@ -27,6 +31,10 @@ def get_JWT_config():
     return JWT_Settings()
 
 
+def get_redis_session():
+    yield from init_redis_pool()
+
+
 def authenticate_user(db_engine, username: str, password: str) -> Optional[UserFromDB]:
     user = get_user_by_username(db_engine, username)
 
@@ -37,8 +45,21 @@ def authenticate_user(db_engine, username: str, password: str) -> Optional[UserF
     return user
 
 
+@auth.get('/auth')
+async def check_auth(Authorize: AuthJWT = Depends()):
+    jwt = Authorize.jwt_required()
+    subject = Authorize.get_jwt_subject()
+    print(subject)
+    # key = 'hi'
+    # value = 'bye'
+    # print(redis_conn)
+    # waited_value = await insert_key(redis_conn, key, value)
+    # print(waited_value)
+    return {'insert into redis': 'succeed'}
+
+
 @auth.post('/login')
-def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends(), Authorize: AuthJWT = Depends()):
+async def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends(), Authorize: AuthJWT = Depends()):
     user = authenticate_user(db, form_data.username, form_data.password)
 
     if not user:
@@ -52,7 +73,12 @@ def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = 
     # Set the JWT cookies in the response
     Authorize.set_access_cookies(access_token)
     Authorize.set_refresh_cookies(refresh_token)
-    return {"access_token": access_token}
+    # Set Cookie: Permission in Redis
+    # insert_key(redis, access_token, 'user')
+    # value = await get_key(redis, access_token)
+    # print(value)
+
+    return {"access_token": access_token, "username": user.username}
 
 
 @auth.post('/refresh')
@@ -72,11 +98,3 @@ def logout(Authorize: AuthJWT = Depends()):
 
     Authorize.unset_jwt_cookies()
     return {"msg": "Successfully logout"}
-
-
-@auth.get('/user')
-def user(Authorize: AuthJWT = Depends()):
-    Authorize.jwt_required()
-
-    current_user = Authorize.get_jwt_subject()
-    return {"user": current_user}
