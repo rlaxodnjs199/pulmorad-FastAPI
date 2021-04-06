@@ -19,6 +19,7 @@ class FastAPISessionMaker:
     def cached_engine(self) -> sa_engine:
         engine = self._cached_engine
         if engine is None:
+            print("Initiating Postgresql Engine")
             engine = self.get_new_engine()
             self._cached_engine = engine
         return engine
@@ -27,6 +28,7 @@ class FastAPISessionMaker:
     def cached_sessionmaker(self) -> sa_sessionmaker:
         sessionmaker = self._cached_sessionmaker
         if sessionmaker is None:
+            print("Initiating Postgresql Session")
             sessionmaker = self.get_new_sessionmaker()
             self._cached_sessionmaker = sessionmaker
         return sessionmaker

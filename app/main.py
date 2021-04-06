@@ -6,6 +6,7 @@ from fastapi_jwt_auth.exceptions import AuthJWTException
 
 from app import config
 from app.core.auth import auth_router
+from app.db.redis.session import redis
 
 app = FastAPI(debug=config.DEBUG)
 app.include_router(auth_router, prefix='/auth', tags=['auth'])
@@ -21,6 +22,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event('startup')
+async def starup_event():
+    await redis.init_redis_pool()
+
+
+@app.on_event('shutdown')
+async def shutdown_event():
+    get_redis().close()
+    await get_redis().wait_closed()
 
 
 @app.get('/protected')

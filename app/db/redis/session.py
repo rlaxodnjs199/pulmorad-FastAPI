@@ -1,21 +1,42 @@
-from typing import AsyncIterator
+from typing import Optional
 import asyncio
 from aioredis import create_redis_pool, Redis
 from app import config
 
 
-async def init_redis_pool(host: str) -> AsyncIterator[Redis]:
-    host = str(config.REDIS_URL)
-    pool = await create_redis_pool(f'redis://{host}')
-    yield pool
-    pool.close()
-    await pool.wait_closed()
+class RedisCache:
+    def __init__(self, redis_url: str):
+        self.redis_url = redis_url
+        self._cached_redis: Optional[Redis] = None
+
+    async def init_redis_pool(self):
+        print("Initializing Redis")
+        self._cached_redis = await create_redis_pool("redis://localhost:6379/0?encoding=utf-8")
+
+    async def set(self, key: str, value: str):
+        if self._cached_redis:
+            return await self._cached_redis.set(key, value)
+        else:
+            AssertionError
+
+    async def get(self, key: str):
+        if self._cached_redis:
+            return await self._cached_redis.get(key)
+        else:
+            AssertionError
+
+    async def keys(self, pattern):
+        return await self._cached_redis.keys(pattern)
+
+    async def close(self):
+        self._cached_redis.close()
+        await self._cached_redis.wait_closed()
 
 
-async def insert_key(redis_conn: Redis, key: str, value: str):
-    await redis_conn.set(key, value)
-    return await redis_conn.get(key, encoding='utf-8')
+redis = RedisCache(str(config.REDIS_URL))
 
 
-async def get_key(redis_conn: Redis, key: str):
-    return await redis_conn.get(key, encoding='utf-8')
+def get_redis() -> Redis:
+    redis_url = str(config.REDIS_URL)
+    redis = RedisCache(redis_url)
+    return redis
