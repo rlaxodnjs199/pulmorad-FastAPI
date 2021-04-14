@@ -25,6 +25,12 @@ class RedisCache:
         else:
             AssertionError
 
+    async def delete(self, key: str):
+        if self._cached_redis:
+            return await self._cached_redis.delete(key)
+        else:
+            AssertionError
+
     async def keys(self, pattern):
         return await self._cached_redis.keys(pattern)
 

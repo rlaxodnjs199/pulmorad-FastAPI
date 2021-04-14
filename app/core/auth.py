@@ -1,6 +1,6 @@
 from typing import Optional
-from fastapi import Depends, APIRouter, HTTPException, status, Request
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import Depends, APIRouter, HTTPException, status, Request, Security
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm, SecurityScopes
 from fastapi_jwt_auth import AuthJWT
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -10,23 +10,22 @@ from app import config
 from app.db.session import get_db
 from app.core.security import verify_password
 from app.db.util.user import get_user_by_username
-from app.db.schemas import UserFromDB
+from app.db.schemas import UserFromDB, UserBase
 from app.db.models import User
 from app.db.redis.session import redis
+from app.core.settings import get_JWT_settings
+
+import jwt
 
 auth_router = auth = APIRouter()
 
-
-class JWT_Settings(BaseModel):
-    authjwt_secret_key: str = config.SECRET_KEY
-    authjwt_token_location: set = {"cookies"}
-    authjwt_cookie_csrf_protect: bool = True
-    authjwt_cookie_samesite: str = 'lax'
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login", scopes={
+                                     "me": "Read information about the current user.", "items": "Read items."},)
 
 
 @AuthJWT.load_config
-def get_JWT_config():
-    return JWT_Settings()
+def load_JWT_settings():
+    return get_JWT_settings()
 
 
 def authenticate_user(db_engine, username: str, password: str) -> Optional[UserFromDB]:
@@ -66,7 +65,8 @@ async def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestF
             detail='Incorrect username or password',
             headers={'WWW-Authenticate': 'Bearer'},
         )
-    access_token = Authorize.create_access_token(subject=form_data.username)
+    access_token = Authorize.create_access_token(
+        subject=form_data.username, user_claims={"scopes": form_data.scopes})
     refresh_token = Authorize.create_refresh_token(subject=form_data.username)
     # Set the JWT cookies in the response
     Authorize.set_access_cookies(access_token)
@@ -74,7 +74,7 @@ async def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestF
     # Set Cookie: Permission in Redis
     await redis.set(access_token, 'user')
 
-    return {"access_token": access_token, "username": user.username}
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 @auth.post('/refresh')
@@ -90,10 +90,45 @@ def refresh(Authorize: AuthJWT = Depends()):
 
 
 @auth.delete('/logout')
-def logout(Authorize: AuthJWT = Depends()):
+def logout(request: Request, Authorize: AuthJWT = Depends()):
     # Authorize.jwt_required()
-
+    # redis.delete()
     # Redis unset Key
     Authorize.unset_jwt_cookies()
 
     return {"msg": "Successfully logout"}
+
+
+# async def get_current_user(Authorize: AuthJWT = Depends()):
+#     user =
+#     if not user:
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Invalid authentication credentials",
+#             headers={"WWW-Authenticate": "Bearer"},
+#         )
+#     return user
+
+# @auth.get('/user/me')
+# async def read_users_me(current_user: UserBase = Depends(get_current_active_user)):
+#     return current_user
+
+# async def get_current_user(security_scopes: SecurityScopes, token):
+
+
+# async def get_current_active_user(current_user: User = Security(get_current_user, scopes=["me"])):
+#     return current_user
+
+# def verify_scopes(current_user, scopes):
+
+
+@auth.get('/user')
+def user(Authorize: AuthJWT = Depends()):
+    Authorize.jwt_required()
+
+    current_user = Authorize.get_jwt_subject()
+    scopes = Authorize.get_raw_jwt()['scopes']
+
+    # if verify_scopes():
+
+    return {"user": current_user, 'scopes': scopes}
