@@ -9,6 +9,9 @@ class UserBase(BaseModel):
     email: Optional[str] = None
     role: str = 'user'
 
+    class Config:
+        orm_mode = True
+
 
 class UserFromDB(UserBase):
     hashed_password: str

@@ -4,16 +4,16 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm, Se
 from fastapi_jwt_auth import AuthJWT
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from aioredis import Redis
 
 from app import config
-from app.db.session import get_db
-from app.core.security import verify_password
-from app.db.util.user import get_user_by_username
-from app.db.schemas import UserFromDB, UserBase
-from app.db.models import User
-from app.db.redis.session import redis
 from app.core.settings import get_JWT_settings
+from app.core.security import verify_password
+from app.db.pgsql.session import get_db
+from app.db.redis.session import redis
+from app.api.v1.user.models import User
+from app.api.v1.user.schemas import UserFromDB, UserBase
+from app.api.v1.user.util import get_user_by_username
+
 
 import jwt
 

@@ -5,5 +5,5 @@ config = Config('.env')
 
 DEBUG = config('DEBUG', cast=bool, default=False)
 SECRET_KEY = config('SECRET_KEY')
-DATABASE_URL = config('DATABASE_URL', cast=URL)
+DATABASE_URL = config('DATABASE_URL')
 REDIS_URL = config('REDIS_URL')

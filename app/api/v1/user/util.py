@@ -2,8 +2,8 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.security import get_password_hash
-from app.db.models import User
-from app.db.schemas import UserCreate
+from app.api.v1.user.models import User
+from app.api.v1.user.schemas import UserCreate
 
 
 def get_user(db: Session, user_id: int) -> User:
@@ -33,16 +33,24 @@ def get_user_by_username(db: Session, username: str) -> User:
 
 def create_user(db: Session, user: UserCreate):
     password = get_password_hash(user.password)
-    user_to_add = User(
-        first_name=user.first_name,
-        last_name=user.last_name,
-        username=user.username,
-        email=user.email,
-        role=user.role,
-        hashed_password=password,
-    )
-    db.add(user_to_add)
-    db.commit()
-    db.refresh(user_to_add)
+
+    try:
+        user_to_add = User(
+            first_name=user.first_name,
+            last_name=user.last_name,
+            username=user.username,
+            email=user.email,
+            role=user.role,
+            hashed_password=password,
+        )
+        db.add(user_to_add)
+        db.commit()
+        db.refresh(user_to_add)
+    except:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Invalid username',
+            headers={'WWW-Authenticate': 'Bearer'},
+        )
 
     return user_to_add

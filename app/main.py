@@ -8,8 +8,17 @@ from app import config
 from app.core.auth import auth_router
 from app.db.redis.session import redis
 
+from app.api.v1.user.endpoints import user_router
+from app.api.v1.project.endpoints import project_router
+
+from app.db.pgsql.base_model import Base
+from app.db.pgsql.session import get_engine
+Base.metadata.create_all(bind=get_engine(config.DATABASE_URL))
+
 app = FastAPI(debug=config.DEBUG)
 app.include_router(auth_router, prefix='/auth', tags=['auth'])
+app.include_router(user_router, prefix='/user', tags=['user'])
+app.include_router(project_router, tags=["project"])
 
 origins = [
     "http://localhost:3000",
