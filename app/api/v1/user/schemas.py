@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 
-class UserBase(BaseModel):
+class User(BaseModel):
     username: str
     first_name: Optional[str] = None
     last_name: Optional[str] = None
@@ -13,11 +13,11 @@ class UserBase(BaseModel):
         orm_mode = True
 
 
-class UserFromDB(UserBase):
+class UserFromDB(User):
     hashed_password: str
 
 
-class UserCreate(UserBase):
+class UserCreate(User):
     password: str
 
     class Config:

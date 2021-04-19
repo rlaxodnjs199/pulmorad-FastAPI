@@ -15,6 +15,6 @@ def get_current_user(Authorize: AuthJWT = Depends()):
     return {"user": current_user}
 
 
-@user.post('/', response_model=schemas.UserBase)
+@user.post('/', response_model=schemas.User)
 def create_user(user: schemas.UserCreate, db=Depends(get_db)):
     return util.create_user(db, user)

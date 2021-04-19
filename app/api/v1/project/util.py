@@ -34,7 +34,7 @@ def get_studies_by_project(db: Session, project_id: int):
     return db.query(models.Study).filter(models.Study.owner_id == project_id).all()
 
 
-def get_initial_rendering_data(db: Session, skip: int = 0, limit: int = 100) -> Dict:
+def get_initial_rendering_data(db: Session, skip: int = 0, limit: int = 100) -> List:
     studies = db.query(
         models.Study).offset(skip).limit(limit).all()
     study_by_project_title_dict = {

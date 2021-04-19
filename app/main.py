@@ -40,6 +40,7 @@ async def starup_event():
 
 @app.on_event('shutdown')
 async def shutdown_event():
+    get_redis().close()
     await get_redis().close()
 
 

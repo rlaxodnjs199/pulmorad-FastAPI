@@ -11,7 +11,7 @@ def get_user(db: Session, user_id: int) -> User:
 
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail='Incorrect username or password',
             headers={'WWW-Authenticate': 'Bearer'},
         )
@@ -24,7 +24,7 @@ def get_user_by_username(db: Session, username: str) -> User:
 
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail='Incorrect username or password',
             headers={'WWW-Authenticate': 'Bearer'},
         )
@@ -48,7 +48,7 @@ def create_user(db: Session, user: UserCreate):
         db.refresh(user_to_add)
     except:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail='Invalid username',
             headers={'WWW-Authenticate': 'Bearer'},
         )
