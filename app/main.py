@@ -6,7 +6,7 @@ from fastapi_jwt_auth.exceptions import AuthJWTException
 
 from app import config
 from app.core.auth import auth_router
-from app.db.redis.session import redis
+from app.db.redis.session import get_redis
 
 from app.api.v1.user.endpoints import user_router
 from app.api.v1.project.endpoints import project_router
@@ -35,13 +35,12 @@ app.add_middleware(
 
 @app.on_event('startup')
 async def starup_event():
-    await redis.init_redis_pool()
+    await get_redis().init_redis_pool()
 
 
 @app.on_event('shutdown')
 async def shutdown_event():
-    get_redis().close()
-    await get_redis().wait_closed()
+    await get_redis().close()
 
 
 @app.get('/protected')
