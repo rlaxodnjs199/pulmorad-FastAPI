@@ -153,10 +153,15 @@ def create_permission(permission: schemas.PermissionCreate, db: Session = Depend
 
 
 @auth.post('/permissions/assign')
-def assign_permissions_to_role(permission: schemas.Permission, role: schemas.Role, db: Session = Depends(get_db)):
-    return util.assign_permissions_to_role(db, permission, role)
+def assign_permissions_to_role(role_id: int, permission_id: int, db: Session = Depends(get_db)):
+    return util.add_permissions_to_role(db, role_id, permission_id)
 
 
-@auth.post('/add_role_to_user')
-def assign_role_to_user(user_id, role: schemas.Role, db: Session = Depends(get_db)):
-    return util.assign_role_to_user(db, role, user_id)
+@auth.post('/role/assign')
+def assign_role_to_user(user_id: int, role_id: int, db: Session = Depends(get_db)):
+    return util.add_roles_to_user(db, user_id, role_id)
+
+
+@auth.get('/get_user_permissions')
+def get_user_permissions(user_id: int, db: Session = Depends(get_db)):
+    return util.get_permissions_from_user(db, user_id)

@@ -5,6 +5,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from . import models, schemas
+from app.core.models import Role, Permission
 
 
 def create_role(db: Session, role: schemas.RoleCreate):
@@ -22,7 +23,6 @@ def create_role(db: Session, role: schemas.RoleCreate):
             detail='Invalid role name',
             headers={'WWW-Authenticate': 'Bearer'},
         )
-
     return role_to_add
 
 
@@ -41,13 +41,15 @@ def create_permission(db: Session, permission: schemas.PermissionCreate):
             detail='Invalid role name',
             headers={'WWW-Authenticate': 'Bearer'},
         )
+    return permission_to_add
 
 
-def assign_permissions_to_role(db: Session, permission: schemas.Permission, role: schemas.Role):
+def add_permissions_to_role(db: Session, role_id, permission_id):
     try:
-        statement = models.role_to_permission_table.insert().values(
-            role_id=role.id, permission_id=permission.id)
-        db.execute(statement)
+        role = db.query(models.Role).get(role_id)
+        permission = db.query(models.Permission).get(permission_id)
+        permission.roles.append(role)
+        db.add(permission)
         db.commit()
     except:
         raise HTTPException(
@@ -58,12 +60,12 @@ def assign_permissions_to_role(db: Session, permission: schemas.Permission, role
     return {'msg': 'success'}
 
 
-def assign_role_to_user(db: Session, role: schemas.Role, userID):
+def add_roles_to_user(db: Session, user_id, role_id):
     try:
-        statement = models.user_to_role_table.insert().values(
-            user_id=userID, role_id=role.id
-        )
-        db.execute(statement)
+        user = db.query(models.User).get(user_id)
+        role = db.query(models.Role).get(role_id)
+        role.users.append(user)
+        db.add(role)
         db.commit()
     except:
         raise HTTPException(
@@ -72,3 +74,21 @@ def assign_role_to_user(db: Session, role: schemas.Role, userID):
             headers={'WWW-Authenticate': 'Bearer'},
         )
     return {'msg': 'success'}
+
+
+def get_permissions_from_user(db: Session, user_id):
+    try:
+        user = db.query(models.User).get(user_id)
+        roles = user.roles
+        permissions = []
+        for role in roles:
+            for permission in role.permissions:
+                permissions.append(permission.name)
+        print(permissions)
+    except:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Invalid user ID',
+            headers={'WWW-Authenticate': 'Bearer'},
+        )
+    return permissions

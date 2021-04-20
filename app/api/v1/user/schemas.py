@@ -7,7 +7,6 @@ class User(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     email: Optional[str] = None
-    role: str = 'user'
 
     class Config:
         orm_mode = True
