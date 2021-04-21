@@ -13,7 +13,6 @@ class TokenData(BaseModel):
 
 
 class Role(BaseModel):
-    id: int
     name: str
 
     class Config:
@@ -21,7 +20,6 @@ class Role(BaseModel):
 
 
 class Permission(BaseModel):
-    id: int
     name: str
 
     class Config:

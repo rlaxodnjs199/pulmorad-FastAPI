@@ -6,7 +6,7 @@ from app.api.v1.user.models import User
 from app.api.v1.user.schemas import UserCreate
 
 
-def get_user(db: Session, user_id: int) -> User:
+def get_user_by_id(db: Session, user_id: int) -> User:
     user = db.query(User).filter(User.id == user_id).first()
 
     if not user:

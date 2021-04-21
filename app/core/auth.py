@@ -18,10 +18,10 @@ from . import models, schemas, util
 
 auth_router = auth = APIRouter()
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 
-@AuthJWT.load_config
+@ AuthJWT.load_config
 def load_JWT_settings():
     return get_JWT_settings()
 
@@ -36,59 +36,58 @@ def authenticate_user(db_engine, username: str, password: str) -> Optional[UserF
     return user
 
 
-def get_current_user(security_scopes: SecurityScopes, token: str = Depends(oauth2_scheme), Authorize: AuthJWT = Depends()):
-    if security_scopes.scopes:
-        authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
-        print(authenticate_value)
-    else:
-        authenticate_value = f"Bearer"
-        print(authenticate_value)
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": authenticate_value},
-    )
+def validate_user_permission(scopes_from_jwt: str, security_scopes: SecurityScopes) -> bool:
+    jwt_scopes_set = set(scope for scope in scopes_from_jwt.split(' '))
+    security_scopes_set = set(security_scopes)
+
+    return (jwt_scopes_set >= security_scopes_set) and (jwt_scopes_set <= security_scopes_set)
+
+
+def get_current_user(request: Request, security_scopes: SecurityScopes, Authorize: AuthJWT = Depends(), db: Session = Depends(get_db)):
     try:
-        jwt = Authorize.get_raw_jwt(token)
-        subject = jwt['sub']
-        scopes = jwt['scopes']
-        print(subject)
-        print(scopes)
+        Authorize.jwt_required()
+        username = Authorize.get_jwt_subject()
+        user = get_user_by_username(db, username)
+        scopes = Authorize.get_raw_jwt()['scopes']
+
+        if not validate_user_permission(scopes, security_scopes.scopes):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail='Scope validation failed',
+                headers={'WWW-Authenticate': 'Bearer'},
+            )
     except:
-        raise credentials_exception
-    return subject
-
-
-async def get_current_active_user(current_user: User = Security(get_current_user, scopes=["me"])):
-    return current_user
-
-
-@auth.get("/auth/")
-async def read_users_me(current_user: User = Security(get_current_active_user, scopes=["me:view"])):
-    return current_user
-
-
-@auth.get('/', response_model=schemas.TokenData)
-async def check_auth(request: Request, Authorize: AuthJWT = Depends()):
-    authorization: Optional[str] = request.cookies.get("access_token_cookie")
-
-    if not authorization:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail='No authorization',
-            headers={'WWW-Authenticate': 'Bearer'},
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": 'Bearer'},
         )
-    jwt = Authorize.jwt_required()
+
+    return user
+
+
+async def get_current_active_user(current_user: User = Security(get_current_user, scopes=["me:view"])):
+    return current_user
+
+
+@ auth.get("/user/me")
+async def read_users_me(current_user: User = Security(get_current_active_user, scopes=["me:edit"])):
+    return current_user
+
+
+@ auth.get('/check-auth', response_model=schemas.TokenData)
+async def check_auth(request: Request, Authorize: AuthJWT = Depends(), db: Session = Depends(get_db)):
+    Authorize.jwt_required()
     username = Authorize.get_jwt_subject()
-    # permission = await redis.get(authorization)
+    user_id = get_user_by_username(db, username).id
+    permissions = util.get_permissions_from_user(db, user_id)
 
-    return {'username': username, 'scopes': []}
+    return {'username': username, 'scopes': permissions}
 
 
-@auth.post('/login', response_model=schemas.Token)
+@ auth.post('/login', response_model=schemas.Token)
 async def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestFormStrict = Depends(), Authorize: AuthJWT = Depends()):
     user = authenticate_user(db, form_data.username, form_data.password)
-
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -98,7 +97,6 @@ async def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestF
 
     scopes = util.get_permissions_from_user(db, user.id)
     str_scopes = ' '.join(scopes)
-    print(str_scopes)
 
     access_token = Authorize.create_access_token(
         subject=form_data.username, user_claims={"scopes": str_scopes})
@@ -112,7 +110,7 @@ async def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestF
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@auth.post('/refresh')
+@ auth.post('/refresh')
 def refresh(Authorize: AuthJWT = Depends()):
     Authorize.jwt_refresh_token_required()
 
@@ -124,7 +122,7 @@ def refresh(Authorize: AuthJWT = Depends()):
     return {"msg": "The token has been refresh"}
 
 
-@auth.delete('/logout')
+@ auth.delete('/logout')
 def logout(request: Request, Authorize: AuthJWT = Depends()):
     # Authorize.jwt_required()
     # redis.delete()
@@ -134,38 +132,38 @@ def logout(request: Request, Authorize: AuthJWT = Depends()):
     return {"msg": "Successfully logout"}
 
 
-@auth.get('/roles', response_model=List[schemas.Role])
+@ auth.get('/roles', response_model=List[schemas.Role])
 def get_roles(db: Session = Depends(get_db)):
     roles = db.query(models.Role).all()
     return roles
 
 
-@auth.get('/permissions', response_model=List[schemas.Permission])
+@ auth.get('/permissions', response_model=List[schemas.Permission])
 def get_permissions(db: Session = Depends(get_db)):
     permissions = db.query(models.Permission).all()
     return permissions
 
 
-@auth.post('/roles', response_model=List[schemas.Role])
+@ auth.post('/roles', response_model=schemas.Role)
 def create_roles(role: schemas.RoleCreate, db: Session = Depends(get_db)):
     return util.create_role(db, role)
 
 
-@auth.post('/permissions', response_model=schemas.Permission)
+@ auth.post('/permissions', response_model=schemas.Permission)
 def create_permission(permission: schemas.PermissionCreate, db: Session = Depends(get_db)):
     return util.create_permission(db, permission)
 
 
-@auth.post('/permissions/assign')
+@ auth.post('/permissions/assign')
 def assign_permissions_to_role(role_id: int, permission_id: int, db: Session = Depends(get_db)):
     return util.add_permissions_to_role(db, role_id, permission_id)
 
 
-@auth.post('/role/assign')
+@ auth.post('/role/assign')
 def assign_role_to_user(user_id: int, role_id: int, db: Session = Depends(get_db)):
     return util.add_roles_to_user(db, user_id, role_id)
 
 
-@auth.get('/get_user_permissions')
+@ auth.get('/get_user_permissions')
 def get_user_permissions(user_id: int, db: Session = Depends(get_db)):
     return util.get_permissions_from_user(db, user_id)
