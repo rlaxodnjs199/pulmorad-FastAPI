@@ -1,6 +1,7 @@
+import functools
 from typing import Optional, List
 from fastapi import Depends, APIRouter, HTTPException, status, Request, Security
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm, SecurityScopes
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestFormStrict, SecurityScopes
 from fastapi_jwt_auth import AuthJWT
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -15,11 +16,9 @@ from app.api.v1.user.schemas import UserFromDB, User
 from app.api.v1.user.util import get_user_by_username
 from . import models, schemas, util
 
-
 auth_router = auth = APIRouter()
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", scopes={
-                                     "me": "Read information about the current user.", "items": "Read items."},)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 
 @AuthJWT.load_config
@@ -64,8 +63,8 @@ async def get_current_active_user(current_user: User = Security(get_current_user
     return current_user
 
 
-@auth.get("/me/")
-async def read_users_me(current_user: User = Depends(get_current_active_user)):
+@auth.get("/auth/")
+async def read_users_me(current_user: User = Security(get_current_active_user, scopes=["me:view"])):
     return current_user
 
 
@@ -87,7 +86,7 @@ async def check_auth(request: Request, Authorize: AuthJWT = Depends()):
 
 
 @auth.post('/login', response_model=schemas.Token)
-async def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends(), Authorize: AuthJWT = Depends()):
+async def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestFormStrict = Depends(), Authorize: AuthJWT = Depends()):
     user = authenticate_user(db, form_data.username, form_data.password)
 
     if not user:
@@ -96,14 +95,19 @@ async def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestF
             detail='Incorrect username or password',
             headers={'WWW-Authenticate': 'Bearer'},
         )
+
+    scopes = util.get_permissions_from_user(db, user.id)
+    str_scopes = ' '.join(scopes)
+    print(str_scopes)
+
     access_token = Authorize.create_access_token(
-        subject=form_data.username, user_claims={"scopes": form_data.scopes})
+        subject=form_data.username, user_claims={"scopes": str_scopes})
     refresh_token = Authorize.create_refresh_token(subject=form_data.username)
     # Set the JWT cookies in the response
     Authorize.set_access_cookies(access_token)
     Authorize.set_refresh_cookies(refresh_token)
     # Set Cookie: Permission in Redis
-    await redis.set(access_token, 'user')
+    # await redis.set(access_token, 'user')
 
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -136,13 +140,13 @@ def get_roles(db: Session = Depends(get_db)):
     return roles
 
 
-@auth.get('/permissions', response_model=schemas.Permission)
+@auth.get('/permissions', response_model=List[schemas.Permission])
 def get_permissions(db: Session = Depends(get_db)):
     permissions = db.query(models.Permission).all()
     return permissions
 
 
-@auth.post('/roles', response_model=schemas.Role)
+@auth.post('/roles', response_model=List[schemas.Role])
 def create_roles(role: schemas.RoleCreate, db: Session = Depends(get_db)):
     return util.create_role(db, role)
 

@@ -84,7 +84,6 @@ def get_permissions_from_user(db: Session, user_id):
         for role in roles:
             for permission in role.permissions:
                 permissions.append(permission.name)
-        print(permissions)
     except:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

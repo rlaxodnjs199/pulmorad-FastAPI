@@ -16,7 +16,7 @@ from app.db.pgsql.session import get_engine
 Base.metadata.create_all(bind=get_engine(config.DATABASE_URL))
 
 app = FastAPI(debug=config.DEBUG)
-app.include_router(auth_router, prefix='/auth', tags=['auth'])
+app.include_router(auth_router, tags=['auth'])
 app.include_router(user_router, prefix='/user', tags=['user'])
 app.include_router(project_router, tags=["project"])
 
