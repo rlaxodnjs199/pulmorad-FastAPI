@@ -1,5 +1,6 @@
 from typing import Optional
 import asyncio
+from typing import AsyncIterator
 from aioredis import create_redis_pool, Redis
 from app import config
 
@@ -34,15 +35,12 @@ class RedisCache:
     async def keys(self, pattern):
         return await self._cached_redis.keys(pattern)
 
-    async def close(self):
-        self._cached_redis.close()
-        await self._cached_redis.wait_closed()
+    async def terminate(self):
+        print("Terminating Redis")
+        if self._cached_redis is not None:
+            self._cached_redis.close()
+            await self._cached_redis.wait_closed()
+            self._cached_redis = None
 
 
 redis = RedisCache(str(config.REDIS_URL))
-
-
-def get_redis() -> Redis:
-    redis_url = str(config.REDIS_URL)
-    redis = RedisCache(redis_url)
-    return redis
