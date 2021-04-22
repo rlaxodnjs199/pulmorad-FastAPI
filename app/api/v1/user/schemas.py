@@ -21,3 +21,31 @@ class UserCreate(User):
 
     class Config:
         orm_mode = True
+
+
+class Role(BaseModel):
+    name: str
+
+    class Config:
+        orm_mode = True
+
+
+class Permission(BaseModel):
+    name: str
+
+    class Config:
+        orm_mode = True
+
+
+class RoleCreate(Role):
+    description: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+
+class PermissionCreate(Permission):
+    description: Optional[str] = None
+
+    class Config:
+        orm_mode = True

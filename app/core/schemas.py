@@ -9,32 +9,3 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: Optional[str] = None
-    scopes: List[str] = []
-
-
-class Role(BaseModel):
-    name: str
-
-    class Config:
-        orm_mode = True
-
-
-class Permission(BaseModel):
-    name: str
-
-    class Config:
-        orm_mode = True
-
-
-class RoleCreate(Role):
-    description: Optional[str] = None
-
-    class Config:
-        orm_mode = True
-
-
-class PermissionCreate(Permission):
-    description: Optional[str] = None
-
-    class Config:
-        orm_mode = True

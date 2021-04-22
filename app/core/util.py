@@ -1,93 +1,47 @@
-from app.api.v1.user.schemas import UserCreate
-from app.api.v1.user.models import User
-from app.core.security import get_password_hash
-from fastapi import HTTPException, status
+from typing import Optional
+from fastapi import Depends, HTTPException, status
+from fastapi.security import SecurityScopes
+from fastapi_jwt_auth import AuthJWT
 from sqlalchemy.orm import Session
+from app.db.pgsql.session import get_db
+from app.api.v1.user.util import get_user_by_username, get_permissions_from_user
+from app.api.v1.user.schemas import UserFromDB
+from .security import verify_password
 
-from . import models, schemas
-from app.core.models import Role, Permission
+
+def authenticate_user(db, username: str, password: str) -> Optional[UserFromDB]:
+    user = get_user_by_username(db, username)
+
+    if not user:
+        return None
+    if not verify_password(password, user.hashed_password):
+        return None
+    return user
 
 
-def create_role(db: Session, role: schemas.RoleCreate):
+def validate_user_permission(security_scopes: SecurityScopes, Authorize: AuthJWT = Depends(), db: Session = Depends(get_db)):
+    Authorize.jwt_required()
+    username = Authorize.get_jwt_subject()
+
+    permission_error = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail='Operation Not Permitted',
+        headers={'WWW-Authenticate': 'Bearer'},
+    )
+
     try:
-        role_to_add = models.Role(
-            name=role.name,
-            description=role.description
-        )
-        db.add(role_to_add)
-        db.commit()
-        db.refresh(role_to_add)
+        user_id = get_user_by_username(db, username).id
+        permissions = get_permissions_from_user(db, user_id)
+        print(permissions)
+        print(security_scopes.scopes)
+        for scope in security_scopes.scopes:
+            if scope not in permissions:
+                raise permission_error
     except:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Invalid role name',
-            headers={'WWW-Authenticate': 'Bearer'},
-        )
-    return role_to_add
+        raise permission_error
 
 
-def create_permission(db: Session, permission: schemas.PermissionCreate):
-    try:
-        permission_to_add = models.Permission(
-            name=permission.name,
-            description=permission.description
-        )
-        db.add(permission_to_add)
-        db.commit()
-        db.refresh(permission_to_add)
-    except:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Invalid permission name',
-            headers={'WWW-Authenticate': 'Bearer'},
-        )
-    return permission_to_add
+def get_username_from_jwt(Authorize: AuthJWT = Depends()):
+    Authorize.jwt_required()
 
-
-def add_permissions_to_role(db: Session, role_id, permission_id):
-    try:
-        role = db.query(models.Role).get(role_id)
-        permission = db.query(models.Permission).get(permission_id)
-        permission.roles.append(role)
-        db.add(permission)
-        db.commit()
-    except:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Invalid role ID or permission ID',
-            headers={'WWW-Authenticate': 'Bearer'},
-        )
-    return {'msg': 'success'}
-
-
-def add_roles_to_user(db: Session, user_id, role_id):
-    try:
-        user = db.query(models.User).get(user_id)
-        role = db.query(models.Role).get(role_id)
-        role.users.append(user)
-        db.add(role)
-        db.commit()
-    except:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Invalid user ID or role ID',
-            headers={'WWW-Authenticate': 'Bearer'},
-        )
-    return {'msg': 'success'}
-
-
-def get_permissions_from_user(db: Session, user_id):
-    try:
-        user = db.query(models.User).get(user_id)
-        roles = user.roles
-        permissions = []
-        for role in roles:
-            for permission in role.permissions:
-                permissions.append(permission.name)
-    except:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Invalid user ID',
-            headers={'WWW-Authenticate': 'Bearer'},
-        )
-    return permissions
+    return Authorize.get_jwt_subject()
