@@ -1,4 +1,5 @@
 import functools
+import datetime
 from typing import Optional, List
 from fastapi import Depends, APIRouter, HTTPException, status, Request, Security
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestFormStrict, SecurityScopes
@@ -98,10 +99,13 @@ async def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestF
     scopes = util.get_permissions_from_user(db, user.id)
     str_scopes = ' '.join(scopes)
 
+    expires_access_token = datetime.timedelta(minutes=30)
+    expires_refresh_token = datetime.timedelta(hours=24)
     access_token = Authorize.create_access_token(
-        subject=form_data.username, user_claims={"scopes": str_scopes})
-    refresh_token = Authorize.create_refresh_token(subject=form_data.username)
-    # Set the JWT cookies in the response
+        subject=form_data.username, user_claims={"scopes": str_scopes}, expires_time=expires_access_token)
+    refresh_token = Authorize.create_refresh_token(
+        subject=form_data.username, expires_time=expires_refresh_token)
+
     Authorize.set_access_cookies(access_token)
     Authorize.set_refresh_cookies(refresh_token)
     # Set Cookie: Permission in Redis
