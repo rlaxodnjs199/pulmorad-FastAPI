@@ -19,11 +19,11 @@ def load_JWT_settings():
     return get_JWT_settings()
 
 
-# @auth.get('/check-auth',
-#           response_model=TokenData,
-#           dependencies=[Security(validate_user_permission, scopes=["me:view"])])
-# async def check_auth(username: str = Depends(get_username_from_jwt)):
-#     return {'username': username}
+@auth.get('/check-auth',
+          response_model=TokenData,
+          dependencies=[Security(validate_user_permission, scopes=["me:view"])])
+async def check_auth(username: str = Depends(get_username_from_jwt)):
+    return {'username': username}
 
 
 @auth.post('/login', response_model=Token)

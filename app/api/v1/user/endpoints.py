@@ -10,12 +10,15 @@ from . import models, schemas, util
 
 user_router = user = APIRouter()
 
-# Simple function to obtain username from jwt
-
 
 @user.get('/users/me')
-def get_current_user(username: str = Depends(get_username_from_jwt)):
+def get_current_user_name(username: str = Depends(get_username_from_jwt)):
     return {"username": username}
+
+
+@user.get('/users/profile', response_model=schemas.User)
+def get_current_user_info(username: str = Depends(get_username_from_jwt), db: Session = Depends(get_db)):
+    return util.get_user_by_username(db, username)
 
 
 @user.post('/users', response_model=schemas.User)
