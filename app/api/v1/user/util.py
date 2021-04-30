@@ -131,7 +131,7 @@ def assign_role_to_user(db: Session, user_id: int, role_id: int):
             headers={'WWW-Authenticate': 'Bearer'},
         )
 
-    return {'msg': f'Assign role:{role.name} to user:{user.name} Success'}
+    return {'msg': f'Assign role:{role.name} to user:{user.username} Success'}
 
 
 def get_permissions_from_user(db: Session, user_id: int) -> List[str]:
