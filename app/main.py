@@ -23,7 +23,9 @@ app.include_router(project_router, tags=["project"])
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost", "http://localhost:3000",
+                   "https://pulmorad.lamis.life"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
