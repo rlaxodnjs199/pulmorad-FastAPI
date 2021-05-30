@@ -1,5 +1,4 @@
 from starlette.config import Config
-from starlette.datastructures import URL, CommaSeparatedStrings, Secret
 
 config = Config('.env')
 
