@@ -20,6 +20,6 @@ class Image(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     url = Column(String, nullable=False)
-    subject_name = Column(String(20), ForeignKey('subject.name'))
+    subject_name = Column(String(30), ForeignKey('subject.name'))
 
     subject = relationship("Subject", back_populates='images')
