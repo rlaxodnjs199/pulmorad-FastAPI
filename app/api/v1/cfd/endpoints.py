@@ -8,8 +8,6 @@ from . import schemas, util
 
 cfd_router = cfd = APIRouter()
 
-image_path = '/home/twkim/lamis-fastapi/app/api/v1/cfd/LOGO_0411_img.png'
-
 
 @cfd.get('/subjects/{subject_id}')
 async def get_subject(subject_id: int, db=Depends(get_db)):
@@ -24,7 +22,7 @@ async def create_subject(subject: schemas.SubjectCreate, db=Depends(get_db)):
 @cfd.get('/subjects/{subject_id}/images')
 async def get_image_file(subject_id: int, db=Depends(get_db)):
     image_paths = util.get_subject_images(db, subject_id)
-    return FileResponse(image_paths[0], media_type='image/png')
+    return FileResponse(image_paths[1], media_type='image/png')
 
 
 @cfd.post('/subjects/{subject_id}/images')
