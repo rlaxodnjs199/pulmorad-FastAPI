@@ -47,3 +47,8 @@ async def get_study_by_project_title(db=Depends(get_db)):
 @project.post('/studies/', response_model=List[schemas.Study])
 async def create_study_for_project(studies: List[schemas.Study], db=Depends(get_db)):
     return util.create_studies(db, studies)
+
+
+@project.get('/testing/')
+async def hello_world():
+    return {'hello': 'world'}
