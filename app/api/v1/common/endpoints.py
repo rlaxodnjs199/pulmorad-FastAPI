@@ -7,6 +7,7 @@ from . import schemas, util
 
 project_router = project = APIRouter(prefix='/projects')
 subject_router = subject = APIRouter(prefix='/subjects')
+study_router = study = APIRouter(prefix='/studies')
 
 
 @project.get('/{project_id}', response_model=schemas.Project)
@@ -77,3 +78,23 @@ async def delete_subject(subject_id: int, db=Depends(get_db)):
 @subject.get('/{subject_id}/projects', response_model=schemas.Project)
 async def get_projects_from_subject(subject_id: int, db=Depends(get_db)):
     return util.get_projects_from_subject(subject_id, db)
+
+
+@study.get('/{study_id}', response_model=schemas.Study)
+async def get_study(study_id: int, db=Depends(get_db)):
+    return util.get_study(study_id, db)
+
+
+@study.get('/', response_model=List[schemas.Study])
+async def get_studies(db=Depends(get_db)):
+    return util.get_studies(db)
+
+
+@study.post('/')
+async def add_study(study: schemas.SubjectCreate, db=Depends(get_db)):
+    return util.add_study(study, db)
+
+
+@study.delete('/{study_id}', response_model=schemas.Study)
+async def delete_subject(study_id: int, db=Depends(get_db)):
+    return util.delete_subject(study_id, db)

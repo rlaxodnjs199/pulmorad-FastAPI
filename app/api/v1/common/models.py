@@ -36,5 +36,25 @@ class Subject(Base):
     projects = relationship(
         'Project', secondary=project_subject_association_table, back_populates='subjects')
 
+    studies = relationship('Study')
+
     def __repr__(self) -> str:
         return "<Subject(id='%d', name='%s')>" % (self.id, self.name)
+
+
+class Study(Base):
+    __tablename__ = 'study'
+
+    id = Column(Integer, primary_key=True, index=True)
+    accession_number = Column(String, nullable=False)
+    sop_instance_uid = Column(String, nullable=False)
+    series_instance_uid = Column(String, nullable=False)
+    study_instance_uid = Column(String, nullable=False)
+    study_date = Column(String(15), nullable=False)
+    date_created = Column(DateTime, server_default=func.now())
+    date_updated = Column(DateTime, onupdate=func.now())
+
+    subject = relationship('Subject', ForeignKey('Subject.id'))
+
+    def __repr__(self) -> str:
+        return "<Study(accession_number ='%s')>" % (self.accession_number)

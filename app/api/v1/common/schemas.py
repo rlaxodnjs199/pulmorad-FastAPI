@@ -50,3 +50,31 @@ class Subject(SubjectInDBBase):
 
 class SubjectWithStudies(SubjectInDBBase):
     studies: List[str]
+
+
+# Study
+class StudyBase(BaseModel):
+    accession_number: str
+    sop_instance_uid: str
+    series_instance_uid: str
+    study_instance_uid: str
+    study_date: str
+
+
+class StudyCreate(StudyBase):
+    pass
+
+
+class StudyInDBBase(BaseModel):
+    accession_number: str
+    sop_instance_uid: str
+    series_instance_uid: str
+    study_instance_uid: str
+    study_date: str
+
+    class Config:
+        orm_mode = True
+
+
+class Study(StudyInDBBase):
+    pass
