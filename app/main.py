@@ -10,6 +10,7 @@ from app.db.redis.session import redis
 
 from app.api.v1.user.endpoints import user_router
 from app.api.v1.project.endpoints import project_router
+from app.api.v1.measurement.endpoints import measurement_router
 
 from app.db.pgsql.base_model import Base
 from app.db.pgsql.session import get_engine
@@ -20,6 +21,7 @@ app = FastAPI(debug=config.DEBUG)
 app.include_router(auth_router, tags=['auth'])
 app.include_router(user_router, tags=['user'])
 app.include_router(project_router, tags=["project"])
+app.include_router(measurement_router, tags=["measurement"])
 
 app.add_middleware(
     CORSMiddleware,
@@ -57,9 +59,7 @@ def authjwt_exception_handler(request: Request, exc: AuthJWTException):
     )
 
 
-@app.get('/testing')
-def testing(Authorize: AuthJWT = Depends()):
-    Authorize.jwt_required()
+@app.get('/tesla')
+def testing_all():
+    return {"Testing": "Tesla"}
 
-    current_user = Authorize.get_jwt_subject()
-    return {"message": "hello world"}
