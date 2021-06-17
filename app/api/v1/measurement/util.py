@@ -7,25 +7,31 @@ def get_all_measurements(db: Session):
 
 
 
-def create_measurement(db: Session, measurement: List[schemas.Measurement]):
-    print('CREATE MEASUREMENT STARTS...')
+def create_measurement(db: Session, measurement: List[schemas.Measurement], patient_id: str):
+    print(f'CREATE MEASUREMENT STARTS... {len(measurement)} ...... for {patient_id}')
     response = []
     
-    # check if there is a duplicate
-    study_list = list(map(lambda x: x.StudyInstanceUID, measurement))
-    patient_list = list(map(lambda x: x.PatientID, measurement))
-    series_list = list(map(lambda x: x.SeriesInstanceUID, measurement))
-    _patient = list(dict.fromkeys(patient_list))
-    _study = list(dict.fromkeys(study_list))
-    _series = list(dict.fromkeys(series_list))
+    # # check if there is a duplicate
+    # study_list = list(map(lambda x: x.StudyInstanceUID, measurement))
+    # patient_list = list(map(lambda x: x.PatientID, measurement))
+    # series_list = list(map(lambda x: x.SeriesInstanceUID, measurement))
+    # _patient = list(dict.fromkeys(patient_list))
+    # _study = list(dict.fromkeys(study_list))
+    # _series = list(dict.fromkeys(series_list))
     
-    if (len(_patient) != 1 or len(_study) != 1 or len(_series)):
-        raise Exception('Save measurement only can save same Patient, Study, and Series')
+    # # First measurement save
+    # print(f'PATIENT: {len(_patient)}      STUDY: {len(_study)}       SERIES: {len(_series)}')
+    # if (len(_patient) == 0 and len(_study) == 0 and len(_series) == 0):
+    #     pass
+    # else:
+    #     if (len(_patient) != 1 or len(_study) != 1 or len(_series) != 1):
+    #         print(f'raising error ... PATIENT: {len(_patient)}      STUDY: {len(_study)}       SERIES: {len(_series)}')
+    #         raise Exception('Save measurement only can save same Patient, Study, and Series')
+    #     # delete previous data that is in the same series.
+        
+    print('deleting measurements...\n')  
+    db.query(models.Measurement).filter_by(PatientID=patient_id).delete()
 
-    # delete previous data that is in the same series.
-    db.query(models.Measurement).filter_by(PatientID=_patient[0], StudyInstanceUID=_study[0], SeriesInstanceUID=_series[0]).delete()
-
-    # db.query.filter_by()
 
     for measure in measurement:
         print(f'{measure.PatientID} | {measure.SOPInstanceUID} || {measure.SeriesInstanceUID} ||| {measure.StudyInstanceUID} |||| {measure.frameIndex}\n')
@@ -41,6 +47,7 @@ def create_measurement(db: Session, measurement: List[schemas.Measurement]):
             start=measure.start,
             middle=measure.middle,
             end=measure.end,
+            textBox=measure.textBox,
             userId=measure.userId,
             lesionNamingNumber=measure.lesionNamingNumber,
             measurementNumber=measure.measurementNumber,
@@ -51,7 +58,12 @@ def create_measurement(db: Session, measurement: List[schemas.Measurement]):
             description=measure.description,
             location=measure.location,
             unit=measure.unit,
-            rAngle=measure.rAngle
+            rAngle=measure.rAngle,
+            perpendicularEnd=measure.perpendicularEnd,
+            perpendicularStart=measure.perpendicularStart,
+            isCreating=measure.isCreating,
+            shortestDiameter=measure.shortestDiameter,
+            longestDiameter=measure.longestDiameter
         )
         db.add(db_measurements)
         db.commit()

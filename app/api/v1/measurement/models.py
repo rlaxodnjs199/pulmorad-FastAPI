@@ -19,6 +19,7 @@ class Measurement(Base):
     start=Column(String)
     middle=Column(String)
     end=Column(String)
+    textBox=Column(String)
     
     userId=Column(String)
     # invalidated: bool
@@ -34,5 +35,9 @@ class Measurement(Base):
     unit=Column(String)
     # Angle
     rAngle=Column(Float)
-    
 
+    perpendicularEnd=Column(String)
+    perpendicularStart=Column(String)
+    isCreating=Column(Boolean)
+    shortestDiameter=Column(Float)
+    longestDiameter=Column(Float)

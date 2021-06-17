@@ -14,6 +14,7 @@ class Measurement(BaseModel):
     start: Optional[str]
     middle: Optional[str]
     end: Optional[str]
+    textBox: Optional[str]
     
     userId: Optional[str]
     # invalidated: bool
@@ -29,6 +30,13 @@ class Measurement(BaseModel):
     unit: Optional[str]
     # Angle
     rAngle: Optional[float]
+
+    # Bidirectional
+    perpendicularEnd: Optional[str]
+    perpendicularStart: Optional[str]
+    isCreating: Optional[bool]
+    shortestDiameter: Optional[float]
+    longestDiameter: Optional[float]
     class Config:
         orm_mode = True
 

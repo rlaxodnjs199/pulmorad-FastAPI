@@ -24,7 +24,7 @@ async def get_all_measurements(db=Depends(get_db)):
 #     return util.create_measurement(db, measurement)
 
 
-@measurement.post('/measurements/', response_model=List[schemas.Measurement])
-async def add_measurement(measurement: List[schemas.Measurement], db=Depends(get_db)):
-    print('create all measurements', measurement)
-    return util.create_measurement(db, measurement)
+@measurement.post('/measurements/{patient_id}', response_model=List[schemas.Measurement])
+async def add_measurement(patient_id: str, measurement: List[schemas.Measurement], db=Depends(get_db)):
+    print(f'create all measurements for {patient_id}', measurement)
+    return util.create_measurement(db, measurement, patient_id)
