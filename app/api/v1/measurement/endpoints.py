@@ -6,7 +6,7 @@ from . import schemas, util
 
 measurement_router = measurement = APIRouter()
 
-@measurement.get('/measurements/', response_model=List[schemas.Measurement])
+@measurement.get('/measurements', response_model=List[schemas.Measurement])
 async def get_all_measurements(db=Depends(get_db)):
     return util.get_all_measurements(db)
 
